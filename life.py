@@ -30,8 +30,8 @@ gen = 3
 speed = 5.0
 inc = 1.0
 
-numrows = 10
-numcols = 10
+numrows = 60
+numcols = 90
 
 sizevert = margin + ((margin + height) * numrows)
 sizehorz = margin + ((margin + width) * numcols)
@@ -48,7 +48,7 @@ def grid_init_blank():
     return grid
 
 def grid_init_rand():
-    grid = np.random.random((numrows,numcols))
+    grid = np.floor(np.random.random((numrows,numcols))*2).astype(int)
     return grid
 
 def get_neighbors(grid,x,y):
