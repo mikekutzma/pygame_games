@@ -15,3 +15,5 @@ Click inside any cell to toggle the status of said cell.
 + Spacebar begins and pauses game.
 + Backspace clears board.
 + Up and down arrow keys adjust iteration speed
+
+s
