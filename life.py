@@ -5,6 +5,8 @@ import random
 import time
 import numpy as np
 import math
+import sys
+import runlengthencoded as rle
 
 black =         [0, 0, 0        ]
 white =         [255, 255, 255  ]
@@ -19,8 +21,8 @@ purple =        [102, 0, 204    ]
 
 pygame.init()
 
-height = 10
-width = 10
+height = 5
+width = 5
 margin = 1
 
 iso = 1
@@ -30,8 +32,16 @@ gen = 3
 speed = 5.0
 inc = 1.0
 
-numrows = 60
+numrows = 90
 numcols = 90
+
+margincolor = black
+deadcellcolor = pink
+livecellcolor = blue
+
+textcolor = white
+
+gosperfile = 'gosperglidergun.rle'
 
 sizevert = margin + ((margin + height) * numrows)
 sizehorz = margin + ((margin + width) * numcols)
@@ -43,6 +53,17 @@ pygame.display.set_caption("The Game of Life")
 
 clock = pygame.time.Clock()
 
+font = pygame.font.SysFont('Arial Bold',25)
+
+if(len(sys.argv)>1):
+    logging = True
+    filename = sys.argv[1]
+else:
+    logging=False
+
+if(logging):
+    f = open(filename,'w')
+
 def grid_init_blank():
     grid = np.zeros((numrows,numcols))
     return grid
@@ -52,8 +73,11 @@ def grid_init_rand():
     return grid
 
 def get_neighbors(grid,x,y):
-    nbrs = grid[max(0,x-1):min(numrows,x+2),max(0,y-1):min(numcols,y+2)]
-    total = np.sum(nbrs) - grid[x][y]
+    total = 0
+    for i in range(-1,2):
+        for j in range(-1,2):
+            total+=grid[(x+i)%numrows][(y+j)%numcols]
+    total = total - grid[x][y]
     return total
 
 def step(x,n):
@@ -67,6 +91,11 @@ def step(x,n):
         return -1
     return 0
 
+def get_num_cells(g):
+    dead = len(list(filter(lambda x: x==0,g.flatten())))
+    live = len(list(filter(lambda x: x==1,g.flatten())))
+    return [dead,live]
+
 grid = grid_init_blank()
 gridaux = grid_init_blank()
 
@@ -79,18 +108,15 @@ while done == False:
             done = True
         if event.type == pygame.MOUSEBUTTONDOWN:
             grid[x][y] = (grid[x][y]+1)%2
-            get_neighbors(grid,x,y)
         if event.type == pygame.KEYDOWN:
             if event.key == pygame.K_ESCAPE:
                 done = True
             if event.key == pygame.K_UP:
                 speed = speed+inc
-                print(speed)
             if event.key == pygame.K_DOWN:
                 speed = speed-inc
                 if speed <= 0:
                     speed = inc
-                print(speed)
             if event.key == pygame.K_SPACE:
                 play = (play==False)
             if event.key == pygame.K_BACKSPACE:
@@ -99,6 +125,11 @@ while done == False:
             if event.key == pygame.K_r:
                 grid = grid_init_rand()
                 gridaux = grid_init_blank()
+            if event.key == pygame.K_g:
+                gos_grid = rle.read_rle(gosperfile)
+                for i in range(len(gos_grid)):
+                    for j in range(len(gos_grid[0])):
+                        grid[x+i][y+j] = gos_grid[i][j]
     if play == True:
         for r in range(numrows):
             for c in range(numcols):
@@ -112,18 +143,25 @@ while done == False:
     y = (pos[0]//(margin+width))
     x = (pos[1]//(margin+height))
 
-    screen.fill(black)
+    screen.fill(margincolor)
 
     tot = 0
     for row in range(numrows):
         for column in range(numcols):   
-            color = white
+            color = deadcellcolor
             if grid[row][column] == 1:
-                color = orange                        #Color Change
+                color = livecellcolor
                 tot = tot+1
             pygame.draw.rect(screen, color, 
                 [(margin+((width+margin)*column)), 
                 (margin+((height+margin)*row)), width, height])
+
+    deadcells, livecells = get_num_cells(grid)
+    if (logging and play): f.write(str(livecells)+"\n")
+    deadtext = font.render("Dead: "+str(deadcells), 1, textcolor)
+    livetext = font.render("Live: "+str(livecells), 1, textcolor)
+    screen.blit(deadtext, (1,1))
+    screen.blit(livetext, (100,1))
 
     if tot == 0:
         play = False
@@ -132,5 +170,8 @@ while done == False:
 
 
     pygame.display.flip()
+
+if(logging):
+    f.close()
 
 pygame.quit()
